@@ -41,7 +41,7 @@ contract MarketPlaceManager is
     string private constant SIGNATURE_VERSION = "1";
 
     CountersUpgradeable.Counter private _marketItemIds;
-
+    CountersUpgradeable.Counter private _orderIds;
     uint256 public constant DENOMINATOR = 1e5;
 
     /**
@@ -60,15 +60,20 @@ contract MarketPlaceManager is
     mapping(address => bool) public isBuyer;
 
     /**
-     *  @notice nftAddressToRootHash is mapping nft address to root hash
-     */
-    mapping(address => bytes32) public nftAddressToRootHash;
-
-    /**
      *  @notice Mapping from MarketItemID to Market Item
      *  @dev MarketItemID -> MarketItem
      */
     mapping(uint256 => MarketItem) public marketItemIdToMarketItem;
+
+    /**
+     *  @notice OrderId -> OrderInfo
+     */
+    mapping(uint256 => OrderInfo) orders;
+
+    /**
+     *  @notice Mapping from NFT address => token ID => To => Owner ==> OrderInfo
+     */
+    mapping(address => mapping(uint256 => mapping(address => mapping(address => OrderInfo)))) orderOfOwners;
 
     event Sold(
         uint256 indexed marketItemId,
@@ -98,9 +103,47 @@ contract MarketPlaceManager is
         uint256 startTime,
         uint256 endTime
     );
+    event UpdateOrder(
+        address owner,
+        uint256 amount,
+        uint256 bidPrice,
+        uint256 expiredTime
+    );
+    event MakeOrder(
+        uint256 indexed orderId,
+        address owner,
+        address to,
+        address nftAddress,
+        uint256 tokenId,
+        uint256 amount,
+        address paymentToken,
+        uint256 bidPrice,
+        uint256 expiredTime,
+        OrderStatus status
+    );
+    event RoyaltiesPaid(uint256 indexed tokenId, uint256 indexed value);
+    event AcceptedOrder(
+        uint256 indexed orderId,
+        address owner,
+        address seller,
+        uint256 amount,
+        address paymentToken,
+        address nftContractAddress,
+        uint256 tokenId,
+        uint256 bidPrice,
+        bool isWallet
+    );
+    event CanceledOrder(uint256 indexed orderId);
     modifier validId(uint256 _id) {
         if (_id == 0 || _id > _marketItemIds.current()) {
             revert ErrorHelper.InvalidMarketItemId();
+        }
+        _;
+    }
+
+    modifier validOrderId(uint256 _id) {
+        if (_id == 0 || _id > _orderIds.current()) {
+            revert ErrorHelper.InvalidOrderId();
         }
         _;
     }
@@ -118,6 +161,218 @@ contract MarketPlaceManager is
 
     // solhint-disable-next-line no-empty-blocks
     receive() external payable {}
+
+    /**
+     * @dev make Order with any NFT in wallet
+     */
+    function makeOrder(
+        IERC20Upgradeable _paymentToken,
+        uint256 _bidPrice,
+        address _to,
+        address _nftAddress,
+        uint256 _tokenId,
+        uint256 _amount,
+        uint256 _time
+    )
+        external
+        payable
+        nonReentrant
+        whenNotPaused
+        validPaymentToken(_paymentToken)
+        notZero(_bidPrice)
+        validWallet(_to)
+        notZero(_amount)
+    {
+        ErrorHelper._checkValidOrderTime(_time);
+        ErrorHelper._checkUserCanOffer(_to);
+        ErrorHelper._checkValidNFTAddress(_nftAddress);
+
+        if (NFTHelper.isERC721(_nftAddress)) {
+            ErrorHelper._checkValidOwnerOf721(_nftAddress, _tokenId, _to);
+            ErrorHelper._checkValidAmountOf721(_amount);
+        } else if (NFTHelper.isERC1155(_nftAddress)) {
+            ErrorHelper._checkValidOwnerOf1155(
+                _nftAddress,
+                _tokenId,
+                _to,
+                _amount
+            );
+        }
+
+        OrderInfo storage existOrder = orderOfOwners[_nftAddress][_tokenId][
+            _to
+        ][_msgSender()];
+
+        if (
+            existOrder.bidPrice != 0 && existOrder.status == OrderStatus.PENDING
+        ) {
+            ErrorHelper._checkCanUpdatePaymentToken(
+                address(_paymentToken),
+                address(existOrder.paymentToken)
+            );
+            _updateOrder(existOrder, _bidPrice, _amount, _time);
+        } else {
+            _orderIds.increment();
+
+            OrderInfo memory orderInfo = OrderInfo({
+                id: _orderIds.current(),
+                nftAddress: _nftAddress,
+                tokenId: _tokenId,
+                amount: _amount,
+                bidPrice: _bidPrice,
+                expiredTime: _time,
+                owner: _msgSender(),
+                to: _to,
+                paymentToken: _paymentToken,
+                status: OrderStatus.PENDING
+            });
+
+            TransferHelper._transferToken(
+                _paymentToken,
+                _bidPrice,
+                _msgSender(),
+                address(this)
+            );
+
+            // Emit Event
+            emit MakeOrder(
+                _orderIds.current(),
+                _msgSender(),
+                orderInfo.to,
+                orderInfo.nftAddress,
+                orderInfo.tokenId,
+                orderInfo.amount,
+                address(orderInfo.paymentToken),
+                orderInfo.bidPrice,
+                orderInfo.expiredTime,
+                orderInfo.status
+            );
+        }
+    }
+
+    function _updateOrder(
+        OrderInfo storage existOrder,
+        uint256 _bidPrice,
+        uint256 _amount,
+        uint256 _time
+    ) internal {
+        bool isExcess = _bidPrice < existOrder.bidPrice;
+        uint256 excessAmount = isExcess
+            ? existOrder.bidPrice - _bidPrice
+            : _bidPrice - existOrder.bidPrice;
+
+        // Update
+        existOrder.bidPrice = _bidPrice;
+        existOrder.amount = _amount;
+        existOrder.expiredTime = _time;
+
+        // Transfer
+        if (excessAmount > 0) {
+            if (!isExcess) {
+                TransferHelper._transferToken(
+                    existOrder.paymentToken,
+                    excessAmount,
+                    existOrder.owner,
+                    address(this)
+                );
+            } else {
+                TransferHelper._transferToken(
+                    existOrder.paymentToken,
+                    excessAmount,
+                    address(this),
+                    existOrder.owner
+                );
+            }
+        }
+
+        // Emit Event
+        emit UpdateOrder(
+            existOrder.owner,
+            existOrder.amount,
+            existOrder.bidPrice,
+            existOrder.expiredTime
+        );
+    }
+
+    /**
+     *  @notice Accept Order
+     *
+     * * Emit {acceptOrder}
+     */
+    function acceptOrder(
+        uint256 _orderId,
+        uint256 _bidPrice
+    ) external nonReentrant whenNotPaused validOrderId(_orderId) {
+        OrderInfo memory orderInfo = orders[_orderId];
+
+        ErrorHelper._checkIsSeller(orderInfo.to);
+
+        ErrorHelper._checkInOrderTime(orderInfo.expiredTime);
+        ErrorHelper._checkAvailableOrder(
+            uint256(orderInfo.status),
+            uint256(OrderStatus.PENDING)
+        );
+        ErrorHelper._checkEqualPrice(_bidPrice, orderInfo.bidPrice);
+
+        // Update Order
+        orderInfo.status = OrderStatus.ACCEPTED;
+        isBuyer[orderInfo.owner] = true;
+
+        // pay listing fee
+        uint256 netSaleValue = _bidPrice - getListingFee(_bidPrice);
+        // Pay royalties from the amount actually received
+        netSaleValue = _deduceRoyalties(
+            orderInfo.nftAddress,
+            orderInfo.tokenId,
+            netSaleValue,
+            orderInfo.paymentToken
+        );
+
+        // Transfer Token from Buyer to Seller
+        TransferHelper._transferToken(
+            orderInfo.paymentToken,
+            netSaleValue,
+            address(this),
+            orderInfo.owner
+        );
+
+        TransferHelper._transferToken(
+            orderInfo.paymentToken,
+            getListingFee(_bidPrice),
+            address(this),
+            admin.treasury()
+        );
+
+        NFTHelper.transferNFTCall(
+            orderInfo.nftAddress,
+            orderInfo.tokenId,
+            orderInfo.amount,
+            address(orderInfo.paymentToken),
+            orderInfo.owner
+        );
+    }
+
+    function cancelOrder(uint256 orderId) internal {
+        OrderInfo storage orderInfo = orders[orderId];
+
+        ErrorHelper._checkOwnerOfOrder(orderInfo.owner);
+        ErrorHelper._checkAvailableOrder(
+            uint256(orderInfo.status),
+            uint256(OrderStatus.PENDING)
+        );
+        // Update order information
+        orderInfo.status = OrderStatus.CANCELED;
+
+        // Payback token to owner
+        TransferHelper._transferToken(
+            orderInfo.paymentToken,
+            orderInfo.bidPrice,
+            address(this),
+            orderInfo.owner
+        );
+
+        emit CanceledOrder(orderId);
+    }
 
     /**
      *  @notice Create market info with data
@@ -460,5 +715,56 @@ contract MarketPlaceManager is
             return uint256(NftStandard.ERC1155);
         }
         return uint256(NftStandard.NONE);
+    }
+
+    /**
+     *  @notice Transfers royalties to the rightsowner if applicable and return the remaining amount
+     *  @param nftContractAddress  address contract of nft
+     *  @param tokenId  token id of nft
+     *  @param grossSaleValue  price of nft that is listed
+     *  @param paymentToken  token for payment
+     */
+    function _deduceRoyalties(
+        address nftContractAddress,
+        uint256 tokenId,
+        uint256 grossSaleValue,
+        IERC20Upgradeable paymentToken
+    ) internal returns (uint256 netSaleAmount) {
+        // Get amount of royalties to pays and recipient
+        if (NFTHelper.isRoyalty(nftContractAddress)) {
+            (
+                address royaltiesReceiver,
+                uint256 royaltiesAmount
+            ) = _getRoyaltyInfo(nftContractAddress, tokenId, grossSaleValue);
+
+            // Deduce royalties from sale value
+            uint256 netSaleValue = grossSaleValue - royaltiesAmount;
+            // Transfer royalties to rightholder if not zero
+            if (royaltiesAmount > 0) {
+                TransferHelper._transferToken(
+                    paymentToken,
+                    royaltiesAmount,
+                    address(this),
+                    royaltiesReceiver
+                );
+                // Broadcast royalties payment
+                emit RoyaltiesPaid(tokenId, royaltiesAmount);
+            }
+
+            return netSaleValue;
+        }
+        return grossSaleValue;
+    }
+
+    function _getRoyaltyInfo(
+        address _nftAddr,
+        uint256 _tokenId,
+        uint256 _salePrice
+    ) internal view returns (address, uint256) {
+        (
+            address royaltiesReceiver,
+            uint256 royaltiesAmount
+        ) = IERC2981Upgradeable(_nftAddr).royaltyInfo(_tokenId, _salePrice);
+        return (royaltiesReceiver, royaltiesAmount);
     }
 }

@@ -10,6 +10,13 @@ enum NftStandard {
     ERC1155,
     NONE
 }
+
+enum OrderStatus {
+    PENDING,
+    ACCEPTED,
+    CANCELED
+}
+
 enum MarketItemStatus {
     LISTING,
     SOLD,
@@ -44,6 +51,32 @@ struct MarketItem {
     uint256 endTime;
     IERC20Upgradeable paymentToken;
     bytes signature;
+}
+
+/**
+ *  @notice This struct defining data for general information of Order
+ *
+ *  @param nftAddress                               NFT Contract Address of this asset
+ *  @param tokenId                                  Token Id of NFT contract
+ *  @param amount                                   Amount to transfer
+ *  @param bidPrice                                 Bid price
+ *  @param expiredTime                              Expired time
+ *  @param owner                                    owner address
+ *  @param to                                       Seller
+ *  @param paymentToken                             Token to transfer
+ *  @param status                                   Status of order
+ */
+struct OrderInfo {
+    uint256 id;
+    address nftAddress;
+    uint256 tokenId;
+    uint256 amount;
+    uint256 bidPrice;
+    uint256 expiredTime;
+    address owner;
+    address to;
+    IERC20Upgradeable paymentToken;
+    OrderStatus status;
 }
 
 struct SigningInfo {
