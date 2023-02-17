@@ -9,7 +9,8 @@ import "@openzeppelin/contracts-upgradeable/utils/structs/EnumerableSetUpgradeab
 
 import "../interfaces/Collection/ICollection.sol";
 import "../interfaces/Collection/ICollectionFactory.sol";
-import "../interfaces/IMarketplace.sol";
+
+import "../interfaces/INFTManager.sol";
 import "../Validatable.sol";
 import "../lib/NFTHelper.sol";
 
@@ -25,15 +26,9 @@ contract CollectionFactory is
     uint256 public maxTotalSupply;
     ICollection public templateERC721;
     ICollection public templateERC1155;
-    address public MarketplaceManager;
-    address public metaDrop;
+    INFTManager public nftManager;
 
     CountersUpgradeable.Counter private _collectionCounter;
-
-    /**
-     *  @notice marketplace store the address of the marketplaceManager contract
-     */
-    IMarketplace public marketplace;
 
     /**
      *  @notice This struct defining data for each item selling on the marketplace
@@ -74,32 +69,22 @@ contract CollectionFactory is
         uint256 indexed oldValue,
         uint256 indexed newValue
     );
-    event SetMarketplaceManager(
-        address indexed oldAddress,
-        address indexed newAddress
-    );
+    event SetNFTManager(address indexed oldAddress, address indexed newAddress);
     event SetMetaDrop(address indexed oldAddress, address indexed newAddress);
-    event SetMarketplace(
-        IMarketplace indexed oldMarketplace,
-        IMarketplace indexed newMarketplace
-    );
 
     function initialize(
         ICollection _templateERC721,
         ICollection _templateERC1155,
         IAdmin _admin,
-        address _MarketplaceManager,
-        address _metaDrop,
-        address _marketplace
+        address _nftManager
     ) public initializer {
         __ERC165_init();
         __Validatable_init(_admin);
 
         templateERC721 = _templateERC721;
         templateERC1155 = _templateERC1155;
-        MarketplaceManager = _MarketplaceManager;
-        metaDrop = _metaDrop;
-        marketplace = IMarketplace(_marketplace);
+        nftManager = INFTManager(_nftManager);
+
         maxCollection = 5;
         maxTotalSupply = 100;
     }
@@ -109,8 +94,7 @@ contract CollectionFactory is
         string memory _name,
         string memory _symbol,
         address _receiverRoyalty,
-        uint96 _feeNumerator,
-        bytes calldata rootHash
+        uint96 _feeNumerator
     ) external whenNotPaused {
         if (maxCollectionOfUsers[_msgSender()] == 0) {
             maxCollectionOfUsers[_msgSender()] = maxCollection;
@@ -149,11 +133,8 @@ contract CollectionFactory is
             _feeNumerator
         );
 
-        // set roothash
-        marketplace.setNewRootHash(address(_collection), rootHash);
         // setAdmin
-        _collection.setAdminByFactory(metaDrop, true);
-        _collection.setAdminByFactory(MarketplaceManager, true);
+        _collection.setAdminByFactory(address(nftManager), true);
 
         _ownerToCollectionAddress[_msgSender()].add(address(_collection));
 
@@ -166,17 +147,6 @@ contract CollectionFactory is
             _receiverRoyalty,
             _feeNumerator
         );
-    }
-
-    /**
-     *  @notice Set Marketplace to change MarketplaceManager address.
-     *
-     *  @dev    Only owner or admin can call this function.
-     */
-    function setMarketplace(IMarketplace _newMarketplace) external onlyAdmin {
-        IMarketplace oldMarketplace = marketplace;
-        marketplace = _newMarketplace;
-        emit SetMarketplace(oldMarketplace, marketplace);
     }
 
     /**
@@ -261,26 +231,13 @@ contract CollectionFactory is
      *  @notice Set Marketplace manager dddress
      *  @param  _newAddress that set erc721 address
      */
-    function setMarketplaceManager(
-        address _newAddress
-    ) external notZeroAddress(_newAddress) onlyAdmin {
-        address _oldAddress = MarketplaceManager;
-        MarketplaceManager = _newAddress;
+    function setNFTManager(
+        INFTManager _newAddress
+    ) external notZeroAddress(address(_newAddress)) onlyAdmin {
+        address _oldAddress = address(nftManager);
+        nftManager = _newAddress;
 
-        emit SetMarketplaceManager(_oldAddress, _newAddress);
-    }
-
-    /**
-     *  @notice Set metaDrop dddress
-     *  @param  _newAddress that set metaDrop address
-     */
-    function setMetaDrop(
-        address _newAddress
-    ) external notZeroAddress(_newAddress) onlyAdmin {
-        address _oldAddress = metaDrop;
-        metaDrop = _newAddress;
-
-        emit SetMetaDrop(_oldAddress, _newAddress);
+        emit SetNFTManager(_oldAddress, address(_newAddress));
     }
 
     function checkCollectionOfUser(

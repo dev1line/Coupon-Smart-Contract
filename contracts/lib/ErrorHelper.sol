@@ -6,6 +6,7 @@ import "@openzeppelin/contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeab
 import "../lib/TransferHelper.sol";
 import "../lib/NFTHelper.sol";
 import "../interfaces/IAdmin.sol";
+import "../interfaces/Collection/ICollectionFactory.sol";
 
 library ErrorHelper {
     // Validatable
@@ -292,16 +293,16 @@ library ErrorHelper {
     }
 
     // Marketplace Manager Function
-    // function _checkUserCreateCollection(
-    //     ICollectionFactory _collectionFactory,
-    //     address _nftAddress
-    // ) internal view {
-    //     if (
-    //         !(_collectionFactory.checkCollectionOfUser(msg.sender, _nftAddress))
-    //     ) {
-    //         revert ErrorHelper.UserDidNotCreateCollection();
-    //     }
-    // }
+    function _checkUserCreateCollection(
+        ICollectionFactory _collectionFactory,
+        address _nftAddress
+    ) internal view {
+        if (
+            !(_collectionFactory.checkCollectionOfUser(msg.sender, _nftAddress))
+        ) {
+            revert ErrorHelper.UserDidNotCreateCollection();
+        }
+    }
 
     // Drop
     function _checkValidFee(

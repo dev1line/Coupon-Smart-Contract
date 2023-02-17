@@ -3,7 +3,6 @@ pragma solidity 0.8.9;
 
 import "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC1155/ERC1155Upgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/token/common/ERC2981Upgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/CountersUpgradeable.sol";
 
 import "../interfaces/ITokenMintERC1155.sol";
@@ -24,7 +23,6 @@ contract TokenMintERC1155 is
     Validatable,
     ReentrancyGuardUpgradeable,
     ERC1155Upgradeable,
-    ERC2981Upgradeable,
     ITokenMintERC1155
 {
     using CountersUpgradeable for CountersUpgradeable.Counter;
@@ -46,14 +44,9 @@ contract TokenMintERC1155 is
     /**
      *  @notice Initialize new logic contract.
      */
-    function initialize(
-        uint96 _feeNumerator,
-        IAdmin _admin
-    ) public initializer {
+    function initialize(IAdmin _admin) public initializer {
         __Validatable_init(_admin);
         __ERC1155_init("");
-
-        _setDefaultRoyalty(address(admin.treasury()), _feeNumerator);
     }
 
     /**
@@ -136,7 +129,7 @@ contract TokenMintERC1155 is
         public
         view
         virtual
-        override(ERC1155Upgradeable, ERC2981Upgradeable, IERC165Upgradeable)
+        override(ERC1155Upgradeable, IERC165Upgradeable)
         returns (bool)
     {
         return

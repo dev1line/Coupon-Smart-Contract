@@ -24,7 +24,7 @@ import "../Validatable.sol";
  *  @notice This smart contract is the marketplace for exhange multiple non-fungiable token with standard ERC721 and ERC1155
  *          all action which user could sell, unsell, buy them.
  */
-contract MarketPlaceManager is
+contract Marketplace is
     Validatable,
     ReentrancyGuardUpgradeable,
     ERC721HolderUpgradeable,
