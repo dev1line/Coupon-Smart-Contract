@@ -76,9 +76,7 @@ contract TokenERC721 is
         maxTotalSupply = _totalSuply;
         maxBatch = 100;
 
-        if (_receiverRoyalty != address(0)) {
-            _setDefaultRoyalty(_receiverRoyalty, _feeNumerator);
-        }
+        _setDefaultRoyalty(_receiverRoyalty, _feeNumerator);
     }
 
     modifier onlyFactory() {
@@ -192,19 +190,19 @@ contract TokenERC721 is
         return _tokenCounter.current();
     }
 
-    /**
-     *  @notice Get list token ID of owner address.
-     */
-    function tokensOfOwner(
-        address owner
-    ) public view returns (uint256[] memory) {
-        uint256 count = balanceOf(owner);
-        uint256[] memory ids = new uint256[](count);
-        for (uint256 i = 0; i < count; i++) {
-            ids[i] = tokenOfOwnerByIndex(owner, i);
-        }
-        return ids;
-    }
+    // /**
+    //  *  @notice Get list token ID of owner address.
+    //  */
+    // function tokensOfOwner(
+    //     address owner
+    // ) public view returns (uint256[] memory) {
+    //     uint256 count = balanceOf(owner);
+    //     uint256[] memory ids = new uint256[](count);
+    //     for (uint256 i = 0; i < count; i++) {
+    //         ids[i] = tokenOfOwnerByIndex(owner, i);
+    //     }
+    //     return ids;
+    // }
 
     /**
      *  @notice Mapping token ID to base URI in ipfs storage

@@ -11,14 +11,14 @@ import "./lib/ErrorHelper.sol";
 /**
  *  @title  Dev Validatable
  *
- *  @author Marketplace Team
+ *  @author CMC Global Team
  *
- *  @dev This contract is using as abstract smartcontract
+ *  @dev This contract is using as abstract smart contract
  *  @notice This smart contract provide the validatable methods and modifier for the inheriting contract.
  */
 contract Validatable is PausableUpgradeable {
     /**
-     *  @notice paymentToken IAdmin is interface of Admin contract
+     *  @notice IAdmin is interface of Admin contract
      */
     IAdmin public admin;
 

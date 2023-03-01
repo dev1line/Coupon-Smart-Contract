@@ -45,6 +45,26 @@ library TransferHelper {
     }
 
     /**
+     *  @notice Transfer ERC20 token
+     */
+    function _transferERC20Token(
+        IERC20Upgradeable _paymentToken,
+        uint256 _amount,
+        address _from,
+        address _to
+    ) internal {
+        if (_to == address(this)) {
+            IERC20Upgradeable(_paymentToken).safeTransferFrom(
+                _from,
+                _to,
+                _amount
+            );
+        } else {
+            IERC20Upgradeable(_paymentToken).safeTransfer(_to, _amount);
+        }
+    }
+
+    /**
      *  @notice Check payment token or native token
      */
     function _isNativeToken(

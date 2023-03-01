@@ -51,7 +51,12 @@ contract TokenERC1155 is
     mapping(uint256 => string) public uris;
 
     event Minted(uint256 indexed tokenId, address indexed to);
-    event MintBatch(address indexed receiver, uint256[] tokenIds, uint256[] amounts, string[] uri);
+    event MintBatch(
+        address indexed receiver,
+        uint256[] tokenIds,
+        uint256[] amounts,
+        string[] uri
+    );
     event SetMaxBatch(uint256 indexed oldMaxBatch, uint256 indexed newMaxBatch);
 
     /**
@@ -74,9 +79,7 @@ contract TokenERC1155 is
         maxBatch = 100;
         maxTotalSupply = _totalSuply;
 
-        if (_receiverRoyalty != address(0)) {
-            _setDefaultRoyalty(_receiverRoyalty, _feeNumerator);
-        }
+        _setDefaultRoyalty(_receiverRoyalty, _feeNumerator);
     }
 
     modifier onlyFactory() {
@@ -125,7 +128,10 @@ contract TokenERC1155 is
 
         uint256 _tokenId = _tokenCounter.current();
 
-        ErrorHelper._checkExceedTotalSupply(_tokenId + _amounts.length, maxTotalSupply);
+        ErrorHelper._checkExceedTotalSupply(
+            _tokenId + _amounts.length,
+            maxTotalSupply
+        );
         uint256[] memory _tokenIds = new uint256[](_amounts.length);
         for (uint256 i; i < _amounts.length; i++) {
             ErrorHelper._checkValidAmount(_amounts[i]);
@@ -155,7 +161,10 @@ contract TokenERC1155 is
      *
      *  @dev    Only factory can call this function.
      */
-    function setAdminByFactory(address _user, bool _allow) public override onlyFactory {
+    function setAdminByFactory(
+        address _user,
+        bool _allow
+    ) public override onlyFactory {
         _setAdmin(_user, _allow);
     }
 
@@ -178,8 +187,16 @@ contract TokenERC1155 is
      */
     function supportsInterface(
         bytes4 interfaceId
-    ) public view virtual override(ERC1155Upgradeable, ERC2981Upgradeable, IERC165Upgradeable) returns (bool) {
-        return interfaceId == type(ITokenERC1155).interfaceId || super.supportsInterface(interfaceId);
+    )
+        public
+        view
+        virtual
+        override(ERC1155Upgradeable, ERC2981Upgradeable, IERC165Upgradeable)
+        returns (bool)
+    {
+        return
+            interfaceId == type(ITokenERC1155).interfaceId ||
+            super.supportsInterface(interfaceId);
     }
 
     /**

@@ -49,20 +49,4 @@ contract CMCG is ERC20, ERC165, ICMCG {
     function burn(uint256 amount) external validAmount(amount) {
         _burn(_msgSender(), amount);
     }
-
-    /**
-     * @dev Returns true if this contract implements the interface defined by
-     * `interfaceId`. See the corresponding
-     * https://eips.ethereum.org/EIPS/eip-165#how-interfaces-are-identified[EIP section]
-     * to learn more about how these ids are created.
-     *
-     * This function call must use less than 30 000 gas.
-     */
-    function supportsInterface(
-        bytes4 interfaceId
-    ) public view virtual override(ERC165, IERC165) returns (bool) {
-        return
-            interfaceId == type(ICMCG).interfaceId ||
-            super.supportsInterface(interfaceId);
-    }
 }

@@ -5,7 +5,7 @@
   "scripts": {
     "compile": "npx hardhat compile",
     "test": "npx hardhat test",
-    "coverage": "npx hardhat coverage --testfiles 'test/*.js'",
+    "coverage": "npx hardhat coverage --testfiles 'test/*/*.js test/*.js'",
     "deploy-testnet": "npx hardhat run scripts/deploy.js --network testnet"
   },
   "dependencies": {

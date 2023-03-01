@@ -19,11 +19,11 @@ library ErrorHelper {
     error InValidTokenMintERC721Contract(address _contract);
     error InValidTokenMintERC1155Contract(address _contract);
     error InValidTreasuryContract(address _contract);
-    // error InValidMarketplaceManagerContract(address _contract);
+
     error InValidCollectionFactoryContract(address _contract);
     error InValidStakingPoolContract(address _contract);
     error InValidMetaCitizenContract(address _contract);
-    //
+
     error InvalidAddress();
     error InvalidAmount();
     error PaymentTokenIsNotSupported();
@@ -60,18 +60,20 @@ library ErrorHelper {
     error InvalidTimeForCreate();
     error CallerIsNotOrderManager();
     error CallerIsNotOrderManagerOrMTVSManager();
-    // MetaDrop Error
-    error InvalidDropId();
-    error ServiceFeeExceedMintFee();
-    error InvalidRoot();
-    error InvalidMintingSupply();
-    error InvalidFundingReceiver();
-    error InvalidOwnerForUpdate();
-    error DropIsCanceled();
-    error NotPermitToMintNow();
-    error CanNotMintAnyMore();
-    error NotEnoughFee();
-    error NotPayBothToken();
+    // // MetaDrop Error
+    // error InvalidDropId();
+    // error ServiceFeeExceedMintFee();
+    // error InvalidRoot();
+    // error InvalidMintingSupply();
+    // error InvalidFundingReceiver();
+    // error InvalidOwnerForUpdate();
+    // error DropIsCanceled();
+    // error NotPermitToMintNow();
+    // error CanNotMintAnyMore();
+    // error NotEnoughFee();
+    // error NotPayBothToken();
+    // Auction
+    error CloneAuctionFailed();
     // Collection Error
     error ExceedMaxCollection();
     error CloneCollectionFailed();
@@ -106,7 +108,7 @@ library ErrorHelper {
     error AlreadyRegister();
     error FailToSendIntoContract();
     error TransferNativeFail();
-    error NotTheOwnerOfOffer();
+    error IsNotTheOwner();
 
     // Order manager Function
     function _checkValidOrderTime(uint256 _time) internal view {
@@ -305,62 +307,62 @@ library ErrorHelper {
     }
 
     // Drop
-    function _checkValidFee(
-        uint256 _numerator,
-        uint256 _denominator
-    ) internal pure {
-        if (_numerator > _denominator) {
-            revert ErrorHelper.ServiceFeeExceedMintFee();
-        }
-    }
+    // function _checkValidFee(
+    //     uint256 _numerator,
+    //     uint256 _denominator
+    // ) internal pure {
+    //     if (_numerator > _denominator) {
+    //         revert ErrorHelper.ServiceFeeExceedMintFee();
+    //     }
+    // }
 
-    function _checkValidRoot(bytes32 _root) internal pure {
-        if (_root == 0) {
-            revert ErrorHelper.InvalidRoot();
-        }
-    }
+    // function _checkValidRoot(bytes32 _root) internal pure {
+    //     if (_root == 0) {
+    //         revert ErrorHelper.InvalidRoot();
+    //     }
+    // }
 
-    function _checkValidReceiver(address _receiver) internal pure {
-        if (_receiver == address(0)) {
-            revert ErrorHelper.InvalidFundingReceiver();
-        }
-    }
+    // function _checkValidReceiver(address _receiver) internal pure {
+    //     if (_receiver == address(0)) {
+    //         revert ErrorHelper.InvalidFundingReceiver();
+    //     }
+    // }
 
-    function _checkValidSupply(uint256 _supply) internal pure {
-        if (_supply == 0) {
-            revert ErrorHelper.InvalidMintingSupply();
-        }
-    }
+    // function _checkValidSupply(uint256 _supply) internal pure {
+    //     if (_supply == 0) {
+    //         revert ErrorHelper.InvalidMintingSupply();
+    //     }
+    // }
 
-    function _checkDropReceiver(address _expected) internal view {
-        if (msg.sender != _expected) {
-            revert ErrorHelper.InvalidOwnerForUpdate();
-        }
-    }
+    // function _checkDropReceiver(address _expected) internal view {
+    //     if (msg.sender != _expected) {
+    //         revert ErrorHelper.InvalidOwnerForUpdate();
+    //     }
+    // }
 
-    function _checkDropCancel(bool _isCancel) internal pure {
-        if (_isCancel) {
-            revert ErrorHelper.DropIsCanceled();
-        }
-    }
+    // function _checkDropCancel(bool _isCancel) internal pure {
+    //     if (_isCancel) {
+    //         revert ErrorHelper.DropIsCanceled();
+    //     }
+    // }
 
-    function _checkDropPermitMint(bool _canBuy) internal pure {
-        if (!_canBuy) {
-            revert ErrorHelper.NotPermitToMintNow();
-        }
-    }
+    // function _checkDropPermitMint(bool _canBuy) internal pure {
+    //     if (!_canBuy) {
+    //         revert ErrorHelper.NotPermitToMintNow();
+    //     }
+    // }
 
-    function _checkDropMintable(uint256 _amount, uint256 _limit) internal pure {
-        if (_amount > _limit) {
-            revert ErrorHelper.CanNotMintAnyMore();
-        }
-    }
+    // function _checkDropMintable(uint256 _amount, uint256 _limit) internal pure {
+    //     if (_amount > _limit) {
+    //         revert ErrorHelper.CanNotMintAnyMore();
+    //     }
+    // }
 
-    function _checkEnoughFee(uint256 _amount) internal view {
-        if (msg.value > _amount) {
-            revert ErrorHelper.NotEnoughFee();
-        }
-    }
+    // function _checkEnoughFee(uint256 _amount) internal view {
+    //     if (msg.value > _amount) {
+    //         revert ErrorHelper.NotEnoughFee();
+    //     }
+    // }
 
     function _checkMaxCollectionOfUser(uint256 _amount) internal pure {
         if (_amount == 0) {
@@ -383,6 +385,12 @@ library ErrorHelper {
     function _checkCloneCollection(address _clone) internal pure {
         if (_clone == address(0)) {
             revert ErrorHelper.CloneCollectionFailed();
+        }
+    }
+
+    function _checkCloneAuction(address _clone) internal pure {
+        if (_clone == address(0)) {
+            revert ErrorHelper.CloneAuctionFailed();
         }
     }
 
@@ -538,7 +546,7 @@ library ErrorHelper {
 
     function _checkOwner(address _addr0, address _addr1) internal pure {
         if (_addr0 != _addr1) {
-            revert ErrorHelper.NotTheOwnerOfOffer();
+            revert ErrorHelper.IsNotTheOwner();
         }
     }
 }

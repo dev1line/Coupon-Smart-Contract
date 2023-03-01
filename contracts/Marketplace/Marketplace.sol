@@ -68,12 +68,13 @@ contract Marketplace is
     /**
      *  @notice OrderId -> OrderInfo
      */
-    mapping(uint256 => OrderInfo) orders;
+    mapping(uint256 => OrderInfo) public orders;
 
     /**
      *  @notice Mapping from NFT address => token ID => To => Owner ==> OrderInfo
      */
-    mapping(address => mapping(uint256 => mapping(address => mapping(address => OrderInfo)))) orderOfOwners;
+    mapping(address => mapping(uint256 => mapping(address => mapping(address => OrderInfo))))
+        public orderOfOwners;
 
     event Sold(
         uint256 indexed marketItemId,
@@ -156,7 +157,7 @@ contract Marketplace is
         __ReentrancyGuard_init();
         __EIP712_init(SIGNING_DOMAIN, SIGNATURE_VERSION);
         treasury = _admin.treasury();
-        listingFee = 25e2; // 2.5%
+        listingFee = 0; // 2.5%
     }
 
     // solhint-disable-next-line no-empty-blocks

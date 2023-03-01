@@ -4,7 +4,9 @@ pragma solidity 0.8.9;
 import "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC721/IERC721Upgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/token/ERC721/utils/ERC721HolderUpgradeable.sol";
 import "../lib/TransferHelper.sol";
+import "../lib/NFTHelper.sol";
 
 /**
  *  @title  Dev English Auction
@@ -14,7 +16,11 @@ import "../lib/TransferHelper.sol";
  *  @notice This smart contract set up an english auction with a NFT ERC-721
  *          that is the reward for highest bidder
  */
-contract EnglishAuction is OwnableUpgradeable, ReentrancyGuardUpgradeable {
+contract EnglishAuction is
+    OwnableUpgradeable,
+    ReentrancyGuardUpgradeable,
+    ERC721HolderUpgradeable
+{
     IERC721Upgradeable public nftReward;
     uint256 public nftId;
     IERC20Upgradeable public paymentToken;
@@ -23,6 +29,7 @@ contract EnglishAuction is OwnableUpgradeable, ReentrancyGuardUpgradeable {
 
     address public highestBidder;
     uint256 public highestBid;
+    bool public isEnded;
     mapping(address => uint256) public bids;
 
     event Start();
@@ -47,11 +54,20 @@ contract EnglishAuction is OwnableUpgradeable, ReentrancyGuardUpgradeable {
         nftReward = _nft;
         nftId = _tokenId;
         paymentToken = _paymentToken;
+
+        // // transfer NFT into auction contract
+        // NFTHelper.transferNFTCall(
+        //     address(_nft),
+        //     _tokenId,
+        //     0,
+        //     _owner,
+        //     address(this)
+        // );
     }
 
     function bid(uint256 amount) external payable nonReentrant {
         require(startTime <= block.timestamp, "not started");
-        require(block.timestamp < endTime, "ended");
+        require(block.timestamp < endTime && !isEnded, "ended");
 
         require(bids[_msgSender()] + amount > highestBid, "amount < highest");
 
@@ -71,6 +87,10 @@ contract EnglishAuction is OwnableUpgradeable, ReentrancyGuardUpgradeable {
     }
 
     function withdraw() external nonReentrant {
+        require(
+            highestBidder != _msgSender(),
+            "highest bidder can not withdraw"
+        );
         uint256 balance = bids[_msgSender()];
         bids[_msgSender()] = 0;
 
@@ -88,6 +108,8 @@ contract EnglishAuction is OwnableUpgradeable, ReentrancyGuardUpgradeable {
         require(startTime <= block.timestamp, "not started");
         require(block.timestamp < endTime, "ended");
 
+        isEnded = true;
+
         if (highestBidder != address(0)) {
             nftReward.safeTransferFrom(address(this), highestBidder, nftId);
             TransferHelper._transferToken(
@@ -101,5 +123,19 @@ contract EnglishAuction is OwnableUpgradeable, ReentrancyGuardUpgradeable {
         }
 
         emit End(highestBidder, highestBid);
+    }
+
+    /**
+     * @dev See {IERC721Receiver-onERC721Received}.
+     *
+     * Always returns `IERC721Receiver.onERC721Received.selector`.
+     */
+    function onERC721Received(
+        address,
+        address,
+        uint256,
+        bytes memory
+    ) public pure override returns (bytes4) {
+        return this.onERC721Received.selector;
     }
 }

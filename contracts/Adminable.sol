@@ -7,7 +7,7 @@ import "./lib/ErrorHelper.sol";
 /**
  *  @title  Dev Adminable Contract
  *
- *  @author Marketplace Team
+ *  @author CMC Global Team
  *
  *  @notice This smart contract is contract to control access and role to call function
  */

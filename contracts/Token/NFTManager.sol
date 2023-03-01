@@ -17,11 +17,11 @@ import "../interfaces/Collection/ITokenERC1155.sol";
 import "../lib/ErrorHelper.sol";
 
 /**
- *  @title  Dev Metaversus Contract
+ *  @title  Dev NFT Management Contract
  *
- *  @author Metaversus Team
+ *  @author CMC Global Team
  *
- *  @notice This smart contract create the token metaversus manager for Operation. These contract using to control
+ *  @notice This smart contract create the token NFT manager for Operation. These contract using to control
  *          all action which user call and interact for purchasing in marketplace operation.
  */
 contract NFTManager is
@@ -99,11 +99,11 @@ contract NFTManager is
     }
 
     /**
-     *  @notice Create NFT Limit
+     *  @notice Create NFT From Collection
      *
      *  @dev    All caller can call this function.
      */
-    function createNFTLimit(
+    function createNFTFromCollection(
         address nftAddress,
         uint256 amount,
         string memory uri

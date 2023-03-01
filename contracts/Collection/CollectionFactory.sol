@@ -134,7 +134,7 @@ contract CollectionFactory is
         );
 
         // setAdmin
-        _collection.setAdminByFactory(address(nftManager), true);
+        // _collection.setAdminByFactory(address(nftManager), true);
 
         _ownerToCollectionAddress[_msgSender()].add(address(_collection));
 
@@ -205,27 +205,27 @@ contract CollectionFactory is
         emit SetTemplateAddress(_templateERC721, _templateERC1155);
     }
 
-    /**
-     * @dev Returns true if this contract implements the interface defined by
-     * `interfaceId`. See the corresponding
-     * https://eips.ethereum.org/EIPS/eip-165#how-interfaces-are-identified[EIP section]
-     * to learn more about how these ids are created.
-     *
-     * This function call must use less than 30 000 gas.
-     */
-    function supportsInterface(
-        bytes4 interfaceId
-    )
-        public
-        view
-        virtual
-        override(ERC165Upgradeable, IERC165Upgradeable)
-        returns (bool)
-    {
-        return
-            interfaceId == type(ICollectionFactory).interfaceId ||
-            super.supportsInterface(interfaceId);
-    }
+    // /**
+    //  * @dev Returns true if this contract implements the interface defined by
+    //  * `interfaceId`. See the corresponding
+    //  * https://eips.ethereum.org/EIPS/eip-165#how-interfaces-are-identified[EIP section]
+    //  * to learn more about how these ids are created.
+    //  *
+    //  * This function call must use less than 30 000 gas.
+    //  */
+    // function supportsInterface(
+    //     bytes4 interfaceId
+    // )
+    //     public
+    //     view
+    //     virtual
+    //     override(ERC165Upgradeable, IERC165Upgradeable)
+    //     returns (bool)
+    // {
+    //     return
+    //         interfaceId == type(ICollectionFactory).interfaceId ||
+    //         super.supportsInterface(interfaceId);
+    // }
 
     /**
      *  @notice Set Marketplace manager dddress
