@@ -1,9 +1,10 @@
 const Big = require("big.js");
+// import { MessageTypes, TypedMessage } from "@metamask/eth-sig-util";
 const { subtract, compareTo } = require("js-big-decimal");
 const { MerkleTree } = require("merkletreejs");
 const keccak256 = require("keccak256");
 const { expect } = require("chai");
-const { ethers } = require("hardhat");
+const { ethers, network } = require("hardhat");
 const { BigNumber } = require("ethers");
 const { provider } = ethers;
 const { AddressZero: ADDRESS_ZERO, MaxUint256: MAX_UINT256 } = ethers.constants;
@@ -67,6 +68,81 @@ const generateMerkleTree = (accounts) => {
 
 const generateLeaf = (account) => {
   return keccak256(account);
+};
+
+const SIGNING_DOMAIN_NAME = "CMCG-Signing-Domain";
+const SIGNING_DOMAIN_VERSION = "1";
+const chainId = network.config.chainId;
+
+const signingMessage = async (
+  signer,
+  verifyContract,
+  nftContractAddress,
+  tokenId,
+  amount,
+  price,
+  startTime,
+  endTime,
+  paymentToken
+) => {
+  console.log("verifyContract:", verifyContract);
+  const typedData = {
+    types: {
+      EIP712Domain: [
+        {
+          name: "name",
+          type: "string",
+        },
+        {
+          name: "version",
+          type: "string",
+        },
+        {
+          name: "chainId",
+          type: "uint256",
+        },
+        {
+          name: "verifyingContract",
+          type: "address",
+        },
+      ],
+      SigningInfo: [
+        { name: "nftContractAddress", type: "address" },
+        { name: "tokenId", type: "uint256" },
+        { name: "amount", type: "uint256" },
+        { name: "price", type: "uint256" },
+        { name: "startTime", type: "uint256" },
+        { name: "endTime", type: "uint256" },
+        { name: "paymentToken", type: "address" },
+      ],
+    },
+    primaryType: "SigningInfo",
+    domain: {
+      name: SIGNING_DOMAIN_NAME,
+      version: SIGNING_DOMAIN_VERSION,
+      chainId,
+      verifyingContract: verifyContract,
+    },
+    message: {
+      nftContractAddress,
+      tokenId,
+      amount,
+      price,
+      startTime,
+      endTime,
+      paymentToken,
+    },
+  };
+  console.log("typedData:", typedData);
+  const myAccount = await signer.getAddress();
+  console.log("myAccount:", myAccount);
+  const signature = await signer.provider.send("eth_signTypedData_v4", [
+    myAccount,
+    JSON.stringify(typedData),
+  ]);
+  // const signature = await signer.signMessage(ethers.utils.arrayify(typedData));
+  console.log("sig:", signature);
+  return signature;
 };
 
 async function getBalance(address, tokenAddress = ADDRESS_ZERO) {
@@ -216,4 +292,5 @@ module.exports = {
   updateTxInfo,
   decodeEvent,
   BalanceTracker,
+  signingMessage,
 };

@@ -9,8 +9,7 @@ import "@openzeppelin/contracts-upgradeable/interfaces/IERC2981Upgradeable.sol";
 library NFTHelper {
     enum Type {
         ERC721,
-        ERC1155,
-        NONE
+        ERC1155
     }
 
     /**
@@ -65,9 +64,8 @@ library NFTHelper {
      */
     function getType(address _account) internal returns (Type) {
         if (isERC721(_account)) return Type.ERC721;
-        if (isERC1155(_account)) return Type.ERC1155;
 
-        return Type.NONE;
+        return Type.ERC1155;
     }
 
     /**

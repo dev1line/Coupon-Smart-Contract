@@ -138,7 +138,8 @@ contract StakingPool is
     event RequestUnstake(address indexed sender);
     event RequestClaim(address indexed sender);
     event SetAcceptableLost(uint256 lost);
-    event SetTimeStone(uint256 timeStone);
+
+    // event SetTimeStone(uint256 timeStone);
 
     /**
      *  @notice Initialize new logic contract.
@@ -227,16 +228,14 @@ contract StakingPool is
     ) external notZero(_amount) nonReentrant whenNotPaused {
         ErrorHelper._checkTimeForStake(startTime, poolDuration);
         ErrorHelper._checkAmountOfStake(getAmountOutWith(_amount));
-        if (!IMarketplace(mkpManager).wasBuyer(_msgSender())) {
-            revert ErrorHelper.MustBuyNFTInMarketplaceFirst();
-        }
+        // if (!IMarketplace(mkpManager).wasBuyer(_msgSender())) {
+        //     revert ErrorHelper.MustBuyNFTInMarketplaceFirst();
+        // }
         // calculate pending rewards of staked amount before
         UserInfo storage user = users[_msgSender()];
         if (user.totalAmount > 0) {
             uint256 pending = calReward(_msgSender());
-            if (pending > 0) {
-                user.pendingRewards = user.pendingRewards + pending;
-            }
+            user.pendingRewards = user.pendingRewards + pending;
         }
         user.lastClaim = block.timestamp;
 
@@ -261,15 +260,14 @@ contract StakingPool is
         user.lazyClaim.isRequested = false;
         if (user.totalAmount > 0) {
             uint256 pending = pendingRewards(_msgSender());
-            if (pending > 0) {
-                user.pendingRewards = 0;
-                if (block.timestamp <= user.lazyClaim.unlockedTime) {
-                    pending -= (pending * acceptableLost) / 100;
-                }
-                // transfer token
-                rewardToken.safeTransfer(_msgSender(), pending);
-                emit Claimed(_msgSender(), pending);
+
+            user.pendingRewards = 0;
+            if (block.timestamp <= user.lazyClaim.unlockedTime) {
+                pending -= (pending * acceptableLost) / 100;
             }
+            // transfer token
+            rewardToken.safeTransfer(_msgSender(), pending);
+            emit Claimed(_msgSender(), pending);
         }
         // update timestamp
         user.lastClaim = block.timestamp;
@@ -302,10 +300,8 @@ contract StakingPool is
         stakedAmount -= _amount;
 
         // claim token
-        if (pending > 0) {
-            user.pendingRewards = 0;
-            rewardToken.safeTransfer(_msgSender(), pending);
-        }
+        user.pendingRewards = 0;
+        rewardToken.safeTransfer(_msgSender(), pending);
 
         // transfer token
         stakeToken.safeTransfer(_msgSender(), _amount);
@@ -333,15 +329,15 @@ contract StakingPool is
         emit EmergencyWithdrawed(_msgSender(), address(rewardToken));
     }
 
-    /**
-     *  @notice Set start time of staking pool.
-     *
-     *  @dev    Only owner can call this function.
-     */
-    function setTimeStone(uint256 _timeStone) external onlyAdmin {
-        timeStone = _timeStone;
-        emit SetTimeStone(timeStone);
-    }
+    // /**
+    //  *  @notice Set start time of staking pool.
+    //  *
+    //  *  @dev    Only owner can call this function.
+    //  */
+    // function setTimeStone(uint256 _timeStone) external onlyAdmin {
+    //     timeStone = _timeStone;
+    //     emit SetTimeStone(timeStone);
+    // }
 
     /**
      *  @notice Set start time of staking pool.
@@ -527,9 +523,9 @@ contract StakingPool is
     function calReward(address _user) public view returns (uint256) {
         UserInfo memory user = users[_user];
         uint256 minTime = min(block.timestamp, startTime + poolDuration);
-        if (minTime < user.lastClaim) {
-            return 0;
-        }
+        // if (minTime < user.lastClaim) {
+        //     return 0;
+        // }
         // reward by each days
         uint256 time = ((minTime - user.lastClaim) / timeStone) * timeStone;
         uint256 amount = (user.totalAmount * time * rewardRate) / 1e18;

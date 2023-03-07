@@ -168,4 +168,97 @@ describe("TokenMintERC721", () => {
       // }
     });
   });
+
+  describe("mintWithRoyalties", async () => {
+    it("should revert when caller is not an owner or admin", async () => {
+      await expect(
+        tokenMintERC721
+          .connect(user1)
+          .mintWithRoyalties(mkpManager.address, "this_uri", 250)
+      ).to.be.revertedWith("CallerIsNotOwnerOrAdmin()");
+    });
+
+    it("should revert when receiver address equal to zero address", async () => {
+      await expect(
+        tokenMintERC721.mintWithRoyalties(AddressZero, "this_uri", 250)
+      ).to.be.revertedWith("InvalidAddress()");
+    });
+
+    it("should revert when fee Numerator equal to zero", async () => {
+      await expect(
+        tokenMintERC721.mintWithRoyalties(mkpManager.address, "this_uri", 0)
+      ).to.be.revertedWith("InvalidAmount()");
+    });
+
+    it("should mintWithRoyalties success", async () => {
+      await tokenMintERC721.mintWithRoyalties(
+        mkpManager.address,
+        "this_uri",
+        250
+      );
+      expect(await tokenMintERC721.balanceOf(mkpManager.address)).to.equal(1);
+
+      // const royaltiesInfo = await tokenMintERC721.royaltyInfo(1, 10000);
+      // expect(royaltiesInfo[0]).to.equal(treasury.address.toString());
+      // expect(royaltiesInfo[1].toString()).to.equal("250");
+    });
+  });
+
+  describe("mintBatchWithRoyalties", async () => {
+    it("should revert when caller is not an owner or admin", async () => {
+      await expect(
+        tokenMintERC721
+          .connect(user1)
+          .mintBatchWithRoyalties(mkpManager.address, BATCH_URIS, 250)
+      ).to.be.revertedWith("CallerIsNotOwnerOrAdmin()");
+    });
+
+    it("should revert when receiver address equal to zero addres", async () => {
+      await expect(
+        tokenMintERC721.mintBatchWithRoyalties(AddressZero, BATCH_URIS, 250)
+      ).to.be.revertedWith("InvalidAddress()");
+    });
+
+    it("should revert when amount of tokens is exceeded", async () => {
+      await expect(
+        tokenMintERC721.mintBatchWithRoyalties(
+          mkpManager.address,
+          Array(101).fill("this_uri"),
+          250
+        )
+      ).to.be.revertedWith("ExceedAmount()");
+    });
+
+    it("should revert when fee Numerator equal to zero", async () => {
+      await expect(
+        tokenMintERC721.mintBatchWithRoyalties(
+          mkpManager.address,
+          BATCH_URIS,
+          0
+        )
+      ).to.be.revertedWith("InvalidAmount()");
+    });
+
+    it("should mint success", async () => {
+      await tokenMintERC721.mintBatchWithRoyalties(
+        mkpManager.address,
+        BATCH_URIS,
+        250
+      );
+      expect(await tokenMintERC721.balanceOf(mkpManager.address)).to.equal(3);
+
+      // for (let i = 0; i < BATCH_URIS.length; i++) {
+      //   const tokenId = i + 1;
+      //   const royaltiesInfo = await tokenMintERC721.royaltyInfo(tokenId, 10000);
+      //   expect(royaltiesInfo[0]).to.equal(treasury.address.toString());
+      //   expect(royaltiesInfo[1].toString()).to.equal("250");
+      // }
+    });
+  });
+
+  describe("support interface function:", async () => {
+    it("check support interface:", async () => {
+      expect(await tokenMintERC721.supportsInterface("0x5b5e139f")).to.be.true;
+    });
+  });
 });

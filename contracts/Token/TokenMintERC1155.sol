@@ -114,12 +114,18 @@ contract TokenMintERC1155 is
      *
      *  @dev    Only owner or admin can call this function.
      */
-    function mintithRoyalties(
+    function mintWithRoyalties(
         address receiver,
         uint256 amount,
         string memory newuri,
         uint96 _feeNumerator
-    ) external onlyAdmin notZeroAddress(receiver) notZero(amount) {
+    )
+        external
+        onlyAdmin
+        notZeroAddress(receiver)
+        notZero(amount)
+        notZero(_feeNumerator)
+    {
         _tokenCounter.increment();
         uint256 tokenId = _tokenCounter.current();
 
@@ -138,12 +144,12 @@ contract TokenMintERC1155 is
      *  @dev    Only owner or admin can call this function.
      *  @dev    Max mint 100 tokens
      */
-    function mintBatchithRoyalties(
+    function mintBatchWithRoyalties(
         address receiver,
         uint256[] memory amounts,
         string[] memory newUris,
         uint96 _feeNumerator
-    ) external onlyAdmin notZeroAddress(receiver) {
+    ) external onlyAdmin notZeroAddress(receiver) notZero(_feeNumerator) {
         ErrorHelper._checkEqualLength(newUris.length, amounts.length);
         ErrorHelper._checkExceed(100, newUris.length);
         uint256[] memory tokenIds = new uint256[](newUris.length);

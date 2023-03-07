@@ -110,7 +110,7 @@ contract TokenMintERC721 is
         address receiver,
         string memory uri,
         uint96 _feeNumerator
-    ) external onlyAdmin notZeroAddress(receiver) {
+    ) external onlyAdmin notZeroAddress(receiver) notZero(_feeNumerator) {
         _tokenCounter.increment();
         uint256 tokenId = _tokenCounter.current();
 
@@ -133,7 +133,7 @@ contract TokenMintERC721 is
         address receiver,
         string[] memory newUris,
         uint96 _feeNumerator
-    ) external onlyAdmin notZeroAddress(receiver) {
+    ) external onlyAdmin notZeroAddress(receiver) notZero(_feeNumerator) {
         ErrorHelper._checkExceed(100, newUris.length);
         uint256[] memory tokenIds = new uint256[](newUris.length);
         for (uint256 i = 0; i < newUris.length; ++i) {

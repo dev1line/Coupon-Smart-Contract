@@ -48,6 +48,20 @@ contract NFTManager is
         address owner,
         uint256 amount
     );
+    event BatchCreated(
+        address indexed nftAddress,
+        uint256 tokenId,
+        address owner,
+        uint256[] amount
+    );
+
+    event BatchCreatedWithRoyalties(
+        address indexed nftAddress,
+        uint256 tokenId,
+        address owner,
+        uint256[] amount,
+        uint96 fee
+    );
 
     /**
      *  @notice Initialize new logic contract.
@@ -77,15 +91,16 @@ contract NFTManager is
     ) external whenNotPaused nonReentrant notZero(amount) {
         uint256 currentId;
         if (typeNft == NFTHelper.Type.ERC721) {
-            ITokenERC721(address(tokenMintERC721)).mint(_msgSender(), uri);
-            currentId = ITokenERC721(address(tokenMintERC721)).getTokenCounter();
-        } else if (typeNft == NFTHelper.Type.ERC1155) {
-            ITokenERC1155(address(tokenMintERC1155)).mint(
+            ITokenMintERC721(address(tokenMintERC721)).mint(_msgSender(), uri);
+            currentId = ITokenMintERC721(address(tokenMintERC721))
+                .getTokenCounter();
+        } else {
+            ITokenMintERC1155(address(tokenMintERC1155)).mint(
                 _msgSender(),
                 amount,
                 uri
             );
-            currentId = ITokenERC1155(address(tokenMintERC1155))
+            currentId = ITokenMintERC1155(address(tokenMintERC1155))
                 .getTokenCounter();
         }
         emit Created(
@@ -99,25 +114,127 @@ contract NFTManager is
     }
 
     /**
-     *  @notice Create NFT From Collection
+     *  @notice Create batch NFT
      *
      *  @dev    All caller can call this function.
      */
-    function createNFTFromCollection(
-        address nftAddress,
-        uint256 amount,
-        string memory uri
-    ) external whenNotPaused nonReentrant notZero(amount) {
-        ErrorHelper._checkValidNFTAddress(nftAddress);
-        NFTHelper.Type typeNft = NFTHelper.getType(nftAddress);
+    function createBatchNFT(
+        NFTHelper.Type typeNft,
+        uint256[] memory amounts,
+        string[] memory newUris
+    ) external whenNotPaused nonReentrant {
         uint256 currentId;
         if (typeNft == NFTHelper.Type.ERC721) {
-            ITokenERC721(nftAddress).mint(_msgSender(), uri);
-            currentId = ITokenERC721(nftAddress).getTokenCounter();
-        } else if (typeNft == NFTHelper.Type.ERC1155) {
-            ITokenERC1155(nftAddress).mint(_msgSender(), amount, uri);
-            currentId = ITokenERC1155(nftAddress).getTokenCounter();
+            ITokenMintERC721(address(tokenMintERC721)).mintBatch(
+                _msgSender(),
+                newUris
+            );
+            currentId = ITokenMintERC721(address(tokenMintERC721))
+                .getTokenCounter();
+        } else {
+            ITokenMintERC1155(address(tokenMintERC1155)).mintBatch(
+                _msgSender(),
+                amounts,
+                newUris
+            );
+            currentId = ITokenMintERC1155(address(tokenMintERC1155))
+                .getTokenCounter();
         }
-        emit Created(nftAddress, currentId, _msgSender(), amount);
+
+        emit BatchCreated(
+            typeNft == NFTHelper.Type.ERC721
+                ? address(tokenMintERC721)
+                : address(tokenMintERC1155),
+            currentId,
+            _msgSender(),
+            amounts
+        );
     }
+
+    /**
+     *  @notice Create batch NFT with royalties
+     *
+     *  @dev    All caller can call this function.
+     */
+    function createBatchNFTWithRoyalties(
+        NFTHelper.Type typeNft,
+        uint256[] memory amounts,
+        string[] memory newUris,
+        uint96 _feeNumerator
+    ) external whenNotPaused nonReentrant {
+        uint256 currentId;
+        if (typeNft == NFTHelper.Type.ERC721) {
+            ITokenMintERC721(address(tokenMintERC721)).mintBatchWithRoyalties(
+                _msgSender(),
+                newUris,
+                _feeNumerator
+            );
+            currentId = ITokenMintERC721(address(tokenMintERC721))
+                .getTokenCounter();
+        } else {
+            ITokenMintERC1155(address(tokenMintERC1155)).mintBatchWithRoyalties(
+                    _msgSender(),
+                    amounts,
+                    newUris,
+                    _feeNumerator
+                );
+            currentId = ITokenMintERC1155(address(tokenMintERC1155))
+                .getTokenCounter();
+        }
+        emit BatchCreatedWithRoyalties(
+            typeNft == NFTHelper.Type.ERC721
+                ? address(tokenMintERC721)
+                : address(tokenMintERC1155),
+            currentId,
+            _msgSender(),
+            amounts,
+            _feeNumerator
+        );
+    }
+
+    // /**
+    //  *  @notice Create NFT From Collection
+    //  *
+    //  *  @dev    All caller can call this function.
+    //  */
+    // function createNFTFromCollection(
+    //     address nftAddress,
+    //     uint256 amount,
+    //     string memory uri
+    // ) external whenNotPaused nonReentrant notZero(amount) {
+    //     ErrorHelper._checkValidNFTAddress(nftAddress);
+    //     NFTHelper.Type typeNft = NFTHelper.getType(nftAddress);
+    //     uint256 currentId;
+    //     if (typeNft == NFTHelper.Type.ERC721) {
+    //         ITokenERC721(nftAddress).mint(_msgSender(), uri);
+    //         currentId = ITokenERC721(nftAddress).getTokenCounter();
+    //     } else if (typeNft == NFTHelper.Type.ERC1155) {
+    //         ITokenERC1155(nftAddress).mint(_msgSender(), amount, uri);
+    //         currentId = ITokenERC1155(nftAddress).getTokenCounter();
+    //     }
+    //     emit Created(nftAddress, currentId, _msgSender(), amount);
+    // }
+
+    // /**
+    //  *  @notice Create Batch NFT From Collection
+    //  *
+    //  *  @dev    All caller can call this function.
+    //  */
+    // function createBatchNFTFromCollection(
+    //     address nftAddress,
+    //     uint256[] memory amounts,
+    //     string[] memory newUris
+    // ) external whenNotPaused nonReentrant {
+    //     ErrorHelper._checkValidNFTAddress(nftAddress);
+    //     NFTHelper.Type typeNft = NFTHelper.getType(nftAddress);
+    //     uint256 currentId;
+    //     if (typeNft == NFTHelper.Type.ERC721) {
+    //         ITokenERC721(nftAddress).mintBatchWithUri(_msgSender(), newUris);
+    //         currentId = ITokenERC721(nftAddress).getTokenCounter();
+    //     } else if (typeNft == NFTHelper.Type.ERC1155) {
+    //         ITokenERC1155(nftAddress).mintBatch(_msgSender(), amounts, newUris);
+    //         currentId = ITokenERC1155(nftAddress).getTokenCounter();
+    //     }
+    //     emit BatchCreated(nftAddress, currentId, _msgSender(), amounts);
+    // }
 }

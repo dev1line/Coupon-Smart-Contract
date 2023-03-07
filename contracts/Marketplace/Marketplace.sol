@@ -15,6 +15,7 @@ import "@openzeppelin/contracts-upgradeable/utils/cryptography/draft-EIP712Upgra
 import "../interfaces/IMarketplace.sol";
 import "../Struct.sol";
 import "../Validatable.sol";
+import "hardhat/console.sol";
 
 /**
  *  @title  Dev Marketplace Contract
@@ -385,7 +386,6 @@ contract Marketplace is
         uint256 _tokenId,
         uint256 _amount,
         uint256 _price,
-        address _seller,
         uint256 _startTime,
         uint256 _endTime,
         IERC20Upgradeable _paymentToken,
@@ -407,7 +407,7 @@ contract Marketplace is
             _amount,
             _price,
             nftType,
-            _seller,
+            _msgSender(),
             address(0),
             MarketItemStatus.LISTING,
             _startTime,
@@ -421,7 +421,7 @@ contract Marketplace is
             _nftAddress,
             _tokenId,
             _amount,
-            _seller,
+            _msgSender(),
             _price,
             uint256(nftType),
             _startTime,
@@ -515,25 +515,31 @@ contract Marketplace is
             endTime: marketItem.startTime,
             paymentToken: address(marketItem.paymentToken)
         });
-
+        console.log(
+            "seller",
+            marketItem.seller,
+            recover(signInfo, marketItem.signature)
+        );
         require(
             marketItem.seller == recover(signInfo, marketItem.signature),
             "Wrong signature."
         );
 
-        TransferHelper._transferToken(
-            IERC20Upgradeable(signInfo.paymentToken),
-            signInfo.price,
-            _msgSender(),
-            treasury
-        );
+        // deduct
 
-        TransferHelper._transferToken(
-            IERC20Upgradeable(signInfo.paymentToken),
-            signInfo.price - getListingFee(signInfo.price),
-            treasury,
-            marketItem.seller
-        );
+        // TransferHelper._transferToken(
+        //     IERC20Upgradeable(signInfo.paymentToken),
+        //     getListingFee(signInfo.price),
+        //     _msgSender(),
+        //     treasury
+        // );
+
+        // TransferHelper._transferToken(
+        //     IERC20Upgradeable(signInfo.paymentToken),
+        //     signInfo.price,
+        //     _msgSender(),
+        //     marketItem.seller
+        // );
         NFTHelper.transferNFTCall(
             signInfo.nftContractAddress,
             signInfo.tokenId,
@@ -629,6 +635,34 @@ contract Marketplace is
         return
             interfaceId == type(IMarketplace).interfaceId ||
             super.supportsInterface(interfaceId);
+    }
+
+    function getMessageHash(
+        address nftContractAddress,
+        uint256 tokenId,
+        uint256 amount,
+        uint256 price,
+        uint256 startTime,
+        int256 endTime,
+        address paymentToken
+    ) public view returns (bytes32) {
+        return
+            _hashTypedDataV4(
+                keccak256(
+                    abi.encode(
+                        keccak256(
+                            "SigningInfo(address nftContractAddress, uint256 tokenId, uint256 amount, uint256 price, uint256 startTime, int256 endTime, address paymentToken)"
+                        ),
+                        nftContractAddress,
+                        tokenId,
+                        amount,
+                        price,
+                        startTime,
+                        endTime,
+                        paymentToken
+                    )
+                )
+            );
     }
 
     function recover(
